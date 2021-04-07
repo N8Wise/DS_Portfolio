@@ -1,0 +1,284 @@
+---
+title: "Gapminder EDA"
+author: "Nathaniel Wise" 
+output: html_notebook
+---
+
+## Introduction:
+
+This project was for a Nonparametric Statistics assignment for which I received a score of 48/50. 
+
+The object of this EDA is to examine the question: "Can the increase in life expectancy since the end of World War 2 be largely explained by the increases in GDP per capita?" While this question is pretty loaded, we can break this down into three components to better examine this question. 
+
+The components:
+* GDP and life expectancy in 2020: How does the life expectancy vary with GDP per capita in 2020?
+* Life expectancy over time by continent: How has the average life expectancy changed from 1946 to 2020 on each continent? 
+*Changes in the relationship between GDP and life expectancy over time: How has the relationship between GDP and life expectancy changed in each continent since 1946?
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '~/DataScienceMS/STAT_S681_Nonparametric_Statistics/Data')
+```
+
+### Imports
+
+```{r include=FALSE}
+library (ggplot2)
+library (dplyr)
+library(tidyverse)
+library(plotly)
+
+life.expectancy <- read.csv('life_expectancy_years.csv')
+life.expectancy <- data.frame(life.expectancy)
+
+income <-read.csv('income_per_person_gdppercapita_ppp_inflation_adjusted.csv')
+population <- read.csv('population_total.csv')
+continents <- read.table('continents.txt', header = TRUE)
+
+#Color palette friendly to colorblind individuals, palette created by Dr. Brad Luen. 
+cb_palette = c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+## Component 1
+
+Exmining GDP and life expectancy in 2020, we can check if trends can be well described by a simple linear model or observe if we need to implement a more complicated approach. We can examine each continent and note if the patterns we see are similar or diffrent between continents.
+
+### Component 1 Setup
+```{r Component 1 Setup}
+
+#Get data from 2020
+life.expectancy.2020 <- data.frame(life.expectancy$country, life.expectancy$X2020)
+income.2020 <- data.frame(income$country,income$X2020)
+
+#Rename columns
+names(life.expectancy.2020) <- c("Country", "LifeExp2020")
+names(income.2020) <- c("Country", "Income2020")
+names(continents) <- c("Country", "Continent")
+
+#Merge tables and check head 
+data.2020 <- left_join(life.expectancy.2020, income.2020, by = "Country")
+data.2020 <- merge(data.2020,continents, by = "Country")
+head(data.2020) 
+```
+
+### Component 1 Visual Examination of Relationships
+```{r Component 1 Visually Examining relationships}
+ggplot(data.2020, aes(x= Income2020, y = LifeExp2020)) +
+  geom_point(aes(color = Continent)) + 
+    xlab("GDP per capita") + ylab("Life expectancy") + 
+  labs("Life expectancy by country, 2020") + scale_color_manual(values = cb_palette)
+
+ggplot(data.2020, aes(x= Income2020, y = LifeExp2020)) + 
+  facet_wrap(~Continent) +
+  geom_point() + 
+  xlab("GDP per capita") + ylab("Life expectancy") + 
+  labs("Life expectancy by country, 2020")
+```
+Observing a histogram of GDP and life expectancy in 2020, we find a right skew in the data making an analysis of trends between the two variables difficult, to correct this we can try a transformation of the data. 
+
+### Component 1 Examining Transformed Data
+```{r Component 1 Examining Transformed Data}
+
+#Examining transformed data
+ggplot(data.2020, aes(x= log10(Income2020), y = LifeExp2020)) +
+  geom_point(aes(color = Continent)) + geom_smooth(method = "lm",se=FALSE) +
+    xlab("log(GDP per capita)") + ylab("Life expectancy") + 
+  labs(title = "Life expectancy by continent, 2020") + scale_color_manual(values = cb_palette)
+
+ggplot(data.2020, aes(x= log10(Income2020), y = LifeExp2020)) + 
+  facet_wrap(~Continent) +
+  geom_point() + geom_smooth(method = "lm", se=FALSE) +
+  xlab("log(GDP per capita)") + ylab("Life expectancy") + 
+  labs(title = "Life expectancy by country, 2020")
+
+```
+
+By transforming the GDP on a log10 scale, we find a linear trend occurs.
+
+### Component 1 Regression Line
+```{r Component 1 Regression Line}
+africa.2020 <- subset(data.2020, Continent == "Africa")
+americas.2020 <- subset(data.2020, Continent == "Americas")
+asia.2020 <-subset(data.2020, Continent == "Asia")
+europe.2020<- subset(data.2020, Continent == "Europe")
+oceania.2020 <- subset(data.2020, Continent == "Oceania")
+
+summary(total.life.expectancy.lm <- lm(LifeExp2020~log10(Income2020), data = data.2020))
+summary(africa.life.expectancy.lm <- lm(LifeExp2020~log10(Income2020), data = africa.2020))
+summary(americas.life.expectancy.lm <- lm(LifeExp2020~log10(Income2020), data = americas.2020))
+summary(asia.life.expectancy.lm <- lm(LifeExp2020~log10(Income2020), data = asia.2020))
+summary(europe.life.expectancy.lm <- lm(LifeExp2020~log10(Income2020), data = europe.2020))
+summary(oceania.life.expectancy.lm <- lm(LifeExp2020~log10(Income2020), data = oceania.2020))
+```
+
+### Component 1 Normality
+```{r Component 1 Checking for Normality}
+ggplot(data.2020, aes(sample= log10(Income2020))) + 
+  stat_qq() + facet_wrap(~Continent)
+```
+In each continent, as the log10 of GDP per capita increases, so does life expectancy. While each continent has a slightly different linear slope, the general trend observed is sill that life expectancy increases as the log10 of GDP increases. The continent of Oceania contains a low amount of data points, so while a liner trend can be observed, it is much less distinguishable. The continent of Africa exhibits a lower log10(GDP) as well as lower life expectancy overall, however, consistent with the other continents, as log10(GDP) increases so does the life expectancy.
+
+The fit of a regression line was used to examine the correlation between life expectancy in 2020 and the log10 of income in 2020 across all continents (below). The low p-value indicates that there is significant correlation between both variables and the multiple R-squared indicates we can explain about 71% of the variation in life expectancy by using the log10 of income in our model. 
+
+Examining the continents individually, we found significant correlation between life expectancy and the log10 transformation of income in 2020. P-values ranged from 3.19x10^(-9) to 0.0013 and R2 values ranged from 31% to 71%.
+
+## Group 2
+
+We can observe life expectancy over time by continent, observing how the life expectancy differs between continents and countries. We can note if the patterns we see are linear and if the changes in life expectancy are faster or slower on a particular continent. 
+
+### Component 2 Setup
+
+```{r include = FALSE}
+#Getting country and life expectancy for 1946 to 2020
+life.exp.df <- life.expectancy%>% select(1, 148:222)
+names(life.exp.df)[1] = "Country"
+life.exp.df <- gather(life.exp.df, key = Year, value = LifeExp, "X1946":"X2020")
+
+#Getting country and population for 1946 to 2020, then merging continent column.
+pop.df <- population%>% select(1, 148:222)
+names(pop.df)[1] = "Country"
+pop.df <- merge(pop.df,continents, by = "Country")
+pop.df <- gather(pop.df, key = Year, value = population, "X1946":"X2020")
+
+#Joining data frames
+exp.df <- left_join(life.exp.df, pop.df, by = c("Country", "Year"))
+exp.df <- exp.df%>%select(Continent, everything())
+exp.df <- exp.df[order(exp.df$Continent, exp.df$Country),]
+
+#Removing X from Year column, changing column from char to numeric
+exp.df$Year <- substring(exp.df$Year, 2)
+exp.df$Year = as.numeric(exp.df$Year)
+
+#Creating a new data frame with weighted average 
+exp.df2 <- exp.df %>% group_by(Year,Continent) %>% summarise(weighted.mean(LifeExp,population, na.rm = TRUE))
+exp.df2 <- exp.df2 %>% drop_na(Continent)
+names(exp.df2)[3] = "WeightedLifeExp"
+```
+
+### Component 2 Visualizing Data
+
+```{r Component 2 Visualizing Data}
+
+#Life expectancy over time by continent
+names(exp.df2)[3] = "WeightedLifeExp"
+ggplot(exp.df2, aes(x = Year, y=WeightedLifeExp)) + 
+  geom_line(aes(color = Continent, linetype = Continent)) +
+  geom_point(aes(color = Continent), size = 1.25) +
+  theme(axis.text.x = element_text(angle = 90)) + 
+  scale_x_continuous(breaks = seq(1946,2020,2)) + 
+  labs(title = "Life Expectancy by Continent") + 
+  xlab("Year") + ylab("Weighted Life Expectancy")
+
+#Subset data by continent
+africa.exp.df <- subset(exp.df, Continent == "Africa")
+asia.exp.df <- subset(exp.df, Continent == "Asia")
+americas.exp.df <- subset(exp.df, Continent == "Americas")
+europe.exp.df <- subset(exp.df, Continent == "Europe")
+oceania.exp.df <- subset(exp.df, Continent == "Oceania")
+
+#Examining countries and life expectancy from 1946 to 2020 by continent. 
+#To examine another continent, just change data frame in ggplot
+ggplotly(ggplot(americas.exp.df, aes(x = Year, y=LifeExp)) + 
+    geom_line(aes(color = Country)) +
+    geom_point(aes(color = Country), size = 1.25) +
+    theme(axis.text.x = element_text(angle = 90), legend.position = "none") + 
+    scale_x_continuous(breaks = seq(1946,2020,2)) +   
+    labs(title = "Life Expectancy in the Americas") +
+    xlab("Year") + ylab("Life Expectancy")) 
+
+#Examining a subset of countries in the Americas
+americas.subset <- c("Argentina, Haiti", "Mexico","United States", "Venezuala")
+subset.americas.exp.df <- filter(americas.exp.df, Country %in% americas.subset)
+
+ggplot(subset.americas.exp.df, aes(x = Year, y=LifeExp)) + 
+    geom_line(aes(color = Country)) +
+    geom_point(aes(color = Country), size = 1.25) +
+    theme(axis.text.x = element_text(angle = 90), legend.position = "none") + 
+    scale_x_continuous(breaks = seq(1946,2020,2)) +   
+    labs(title = "Subset of Life Expectancy in the Americas") +
+    xlab("Year") + ylab("Life Expectancy")
+
+```
+
+Examining line graphs of weighted life expectancy and continents, we observe a positive linear trend of life expectancy in each continent. In 2020, we observe life expectancy of the continents America, Europe and Oceania all converging between 75 and 80 years, while Africa and Asia lag behind with life expectancy near 65 and 70 years respectively. 
+
+Delving into each continent, we observe a linear upward trend across countries of all continents, but life expectancy in some countries grows more slowly than others. It is also notable that localized events such as natural disasters, famine, or war correlate with a drastically reduced life expectancy, but these changes seem to rebound and continue the original linear trend. A good example of this occurrence is in Haiti, where in 2010 life expectancy had a sharp decline in correlation with an earthquake but recovered in the following year. Another example is in Guatemala, where a sharp decline of life expectancy occurred in 1976 in congruence with an earthquake. The countries in the Americas are shown below as an example.
+
+## Component 3
+
+In Component 1, we found that there is a significant relationship between the log10(GDP) and life expectancy in an individual year. In Component 2, we found a significant relationship between life expectancy and time. From these observations, we see that both GDP and life expectancy are correlated, and that life expectancy and log10(GDP) increase over time on each continent. By compiling the information between Component 1 and Component 2, along with the following code, we can reach a conclusion for our initial question: "Can the increase of life expectancy since the end of World War 2 be largely explained by the increases in GDP per capita?"
+
+### Component 3 Setup
+```{r include = FALSE}
+#Get specific years, add Continents column
+income <- income %>% select(1, 148:222)
+names(income)[1] = "Country"
+income <- gather(income, key = Year, value = GDP, "X1946":"X2020")
+income <- merge(income,continents, by = "Country")
+
+#Remove X from year and convert to numeric
+income$Year <- substring(income$Year, 2)
+income$Year = as.numeric(income$Year)
+
+#Add GDP to data frame, convert to double
+exp.df <- merge(exp.df,income, by = c("Country","Year","Continent"))
+exp.df$GDP <- as.double(exp.df$GDP)
+
+#Create new data frame with GDP weighted by country's population
+exp.df3 <- exp.df %>% group_by(Year,Continent) %>% summarise(weighted.mean(GDP,population))
+names(exp.df3)[3] = "WeightedGDP"
+
+#Merge dataframes with weighted life expectancy and weighted GDP, drop NAs 
+exp.df2 <- merge(exp.df2,exp.df3, by = c("Year","Continent"))
+exp.df2 <- exp.df2 %>% drop_na(Continent)
+
+```
+
+### Group 3 Visualizing Data
+```{r Group 3 Visualizing Data}
+#Visualizing log10(GDP) over time
+ggplot(exp.df2, aes(x = Year, y=log10(WeightedGDP))) + 
+  geom_line(aes(color = Continent, linetype = Continent)) +
+  geom_point(aes(color = Continent), size = 1.25) +
+  theme(axis.text.x = element_text(angle = 90)) + 
+  scale_x_continuous(breaks = seq(1946,2020,2)) + 
+  labs(title = "log10(GDP) by Continent") + 
+  xlab("Year") + ylab("log10(Weighted GDP)")
+
+#Visualizing Life expectancy over time --the same graph as in group 2
+ggplot(exp.df2, aes(x = Year, y=WeightedLifeExp)) + 
+  geom_line(aes(color = Continent, linetype = Continent)) +
+  geom_point(aes(color = Continent), size = 1.25) +
+  theme(axis.text.x = element_text(angle = 90)) + 
+  scale_x_continuous(breaks = seq(1946,2020,2)) + 
+  labs(title = "Life Expectancy by Continent") + 
+  xlab("Year") + ylab("Weighted Life Expectancy")
+
+#Visualizing Year, Weighted Life Expectancy and log10(GDP) on one graph
+  ggplot(exp.df2, aes(x=Year, y=WeightedLifeExp, size = log10(WeightedGDP), 
+                      color = Continent)) +
+    geom_point(alpha=0.5) +
+    geom_smooth(method = "lm", se = FALSE, aes(color = Continent), size = .5) +
+    scale_size(range = c(.1, 5), name = "log10(Weighted GDP)") +
+    labs(title = "Life Expectancy and log10(GDP) by Year") +
+    xlab("Year") + ylab("Weighted Life Expectancy") +
+    theme(legend.position="bottom")
+
+#Examining Life Expectancy and log10(GDP) by decade
+decade <- read.table('/Users/amyscomputer/DataScienceMS/STAT_S681_Nonparametric_Statistics/Data/WiseDecadesforProject1P2.txt', header = TRUE)
+decade <- data.frame(decade)
+
+part3.df <- left_join(exp.df2, decade, by = "Year")
+part3.df <- part3.df %>% drop_na(Decade)
+
+ggplot(part3.df, aes(x = Decade, y=WeightedLifeExp)) + 
+  geom_jitter(aes(color = log10(WeightedGDP)), size = .75, alpha = .6) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = log10(WeightedGDP))) + 
+  facet_wrap(~Continent, ncol = 3) +
+  labs(title = "Life Expectancy vs log10(GDP) Across the Decades") + 
+  xlab("Decade") + ylab("Weighted Life Expectancy")
+```
+Examining the life expectancy and log10(GDP) across the decades we further examine the relationship between the two variables and again see a gradual increase in both log10(GDP) and life expectancy, however it is easier to notice that in some decades the log10(GDP) does not change drastically for a continent, yet life expectancy still increases. This indicates that GDP is not the sole factor in a continent’s change in life expectancy. 
+
+Overall, life expectancy seems to be converging just below the 80-year mark across continents and while GDP and life expectancy are correlated, changes in the life expectancy cannot be solely explained by GDP. We observe some exceptions in trends over time (ex. Component 2, Haiti in 2010), but sudden drops in life expectancy eventually rebound towards the original slope of the country or continent being examined.  
