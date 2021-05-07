@@ -7,7 +7,7 @@ Thank you for taking the time to examine some of my projects. In this portfolio 
 ### Projects:  
 #### Exploratory Data Analysis
 Project for course Non-Parametric Statistics, recieved score of 48/50  
-Summary: An exploratory analysis of life expectancy and GDP using the gapminder dataset. Code produced in RStudio.   
+Summary: An exploratory analysis of life expectancy and GDP using the gapminder dataset.  
 Platform: RStudio  
   
 #### Recommendation System
