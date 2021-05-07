@@ -16,7 +16,7 @@ Summary: A recommendation system using document similarity.
 Platform: Jupyter Notebook  
   
 #### NLP Analysis
-Project for course introduction to NLP, recieved score of 100/100  
+Project for course Introduction to NLP, recieved score of 100/100  
 Summary: Led a team of 3 in collaboration with the organization Allegion PLC, conducting an analysis of product reviews and identify areas of success and potential areas for improvement. To reach our conclusions, we performed exploratory data analysis, data cleaning, sentiment analysis, keyword extraction and finally topic modeling.  
 Platform: Jupyter Notebook  
 
