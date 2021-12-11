@@ -1,0 +1,263 @@
+---
+title: "Assignment 2"
+author: "Tyler King"
+date: "10/16/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Libraries and Data Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Library Installs, echo=T, message = F, warning = F, results='hide'}
+#library(caret)
+library(fastDummies)
+library(ggplot2)
+library(naniar)
+library(tidyr)
+library(treemapify)
+library(dplyr)
+library(h2o)
+
+
+```
+
+```{r Set Data}
+set.seed(004)
+diabetic_data <- read.csv("diabetic_data.csv",header = TRUE, na.strings = "?")
+
+```
+
+## Preliminary Cleaning
+
+Before starting it's a good idea to look and see what the data looks like and if there are any variables we should immediately drop or replace.
+
+```{r Preliminary Cleaning}
+gg_miss_var(diabetic_data)
+```
+
+The above chart shows many missing values for weight, medical_specialty, and payer_code so those will be dropped. We also are going to drop encounter_id since we are looking at the data in aggregate and don't need to reference a particular encounter
+
+```{r Preliminary Cleaning - Drop variables}
+data = subset(diabetic_data, select = -c(weight, payer_code, medical_specialty, encounter_id))
+
+```
+
+Next, let's check for how many NA values there are.
+
+```{r Preliminary Cleaning - Check NA}
+sapply(data, function(x) sum(is.na(x)))
+```
+
+Half of the NA values are in the race column, and the other half mostly spread out among the diag columns. Considering less than 5% of entries contained NA, it was decided to just drop them instead of imputing to reduce the impact on our models
+
+```{r Preliminary Cleaning - Drop NA}
+data = drop_na(data)
+```
+
+Next we will transform the readmitted column into a binary 1 (for readmitted = \<30) and 0 (no readmission or \>30)
+
+```{r Preliminary Cleaning - Recode Admitted}
+data$readmitted = ifelse(data$readmitted == "<30", 1, 0)
+```
+
+## Task 1: Visualization
+
+We want to create some treemaps to help visualize the amount of patients readmitted who fall into different categories.
+
+First we want to create a table with our desired data.
+
+```{r Visualization - Create Table}
+plot_race <- data %>% count(race, readmitted)
+plot_gender <- data %>% count(gender, readmitted)
+plot_age <- data %>% count(age, readmitted)
+plot_med <- data %>% count(diabetesMed, readmitted)
+```
+
+We also need to refactor the readmitted column to make the labels on the graph easier
+
+```{r Visualization - Refactor Readmitted}
+plot_race$readmitted = ifelse(plot_race$readmitted == 0, "Not Readmitted", "Readmitted")
+plot_age$readmitted = ifelse(plot_age$readmitted == 0, "Not Readmitted", "Readmitted")
+plot_gender$readmitted = ifelse(plot_gender$readmitted == 0, "Not Readmitted", "Readmitted")
+plot_med$readmitted = ifelse(plot_med$readmitted == 0, "Not Readmitted", "Readmitted")
+
+```
+
+Next we can create treemaps for each of the subgroups.
+
+/\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\
+\*    Title: Treemaps in R\
+\*    Author: Rob Kabacoff\
+\*    Date: 12/01/20\
+\*    Availability: <https://rkabacoff.github.io/datavis/index.html>\
+\*\
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/
+
+```{r - Creating treemaps}
+ ggplot(plot_race, aes(area = n, fill = race,
+                label = race, subgroup = readmitted)) +
+     geom_treemap() +
+     geom_treemap_subgroup_border(colour = "grey", size = 7) +
+     geom_treemap_subgroup_text(place = "bottom", grow = FALSE,
+                                alpha = 0.25, colour = "black",
+                                fontface = "italic") +
+     geom_treemap_text(colour = "black", place = "centre",
+                       size = 15, grow = FALSE, alpha=0.5)
+
+ ggplot(plot_gender, aes(area = n, fill = gender,
+                label = gender, subgroup = readmitted)) +
+     geom_treemap() +
+     geom_treemap_subgroup_border(colour = "grey", size = 7) +
+     geom_treemap_subgroup_text(place = "bottom", grow = FALSE,
+                                alpha = 0.25, colour = "black",
+                                fontface = "italic") +
+     geom_treemap_text(colour = "black", place = "centre",
+                       size = 15, grow = FALSE, alpha=0.5)
+
+ ggplot(plot_age, aes(area = n, fill = age,
+                label = age, subgroup = readmitted)) +
+     geom_treemap() +
+     geom_treemap_subgroup_border(colour = "grey", size = 7) +
+     geom_treemap_subgroup_text(place = "bottom", grow = FALSE,
+                                alpha = 0.25, colour = "black",
+                                fontface = "italic") +
+     geom_treemap_text(colour = "black", place = "centre",
+                       size = 15, grow = FALSE, alpha=0.5)
+ ggplot(plot_med, aes(area = n, fill = diabetesMed,
+                label = diabetesMed, subgroup = readmitted)) +
+     geom_treemap() +
+     geom_treemap_subgroup_border(colour = "grey", size = 7) +
+     geom_treemap_subgroup_text(place = "bottom", grow = FALSE,
+                                alpha = 0.25, colour = "black",
+                                fontface = "italic") +
+     geom_treemap_text(colour = "black", place = "centre",
+                       size = 15, grow = FALSE, alpha=0.5)
+
+```
+
+## Task 2: Random Forest Decision Tree Model
+
+Before our partner Nate had finished his Feature Selection Analysis, the following models were created from all the variables in the above dataframe. In addition to being very slow, it was also determined to not be necassary since many features either have too many factors (diag 1-3) there were also some features with only a single patient being different (examide, citoglipton). These features were all dropped from the following models.
+
+```{r Creating model data frame}
+model_data = subset(data, select = c(readmitted, race, age, admission_type_id, 
+                             discharge_disposition_id, admission_source_id, 
+                             time_in_hospital, num_lab_procedures, 
+                             num_procedures, num_medications, number_outpatient, 
+                             number_emergency, number_inpatient, 
+                             number_diagnoses, max_glu_serum, A1Cresult, 
+                             metformin, insulin, change, diabetesMed))
+```
+
+Then we need to create dummy variables for the factor and character features, making all of the features numeric.
+
+```{r Creating dummy variables}
+model_dummy_data <- fastDummies::dummy_cols(model_data, remove_selected_columns = TRUE)
+```
+
+Next we need to separate the data into training and test subsets. We used 75% training and 25% test.
+
+```{r Creating test and training data}
+sample_rows <- sample(nrow(data), nrow(data)*0.75)
+data_train <- model_dummy_data[sample_rows,]
+data_test <- model_dummy_data[-sample_rows,]
+```
+
+The h2o library for machine learning was found to be exponentially faster than some of the other more native libraries. This reduced the computation time from hours or days down to minutes.
+
+First we need to initialize h2o
+
+```{r Initialize h2o}
+h2o.init()
+
+```
+
+h2o requires data to be in it's own data frame format so we will convert both our test and train data into h2o data frames. I think there might be a bug in as.h2o because it seems to create an additional row in the h2o data frame
+
+```{r Convert to h2o format}
+data_test_h2o = as.h2o(data_test)
+data_train_h2o = as.h2o(data_train)
+```
+
+Next we need to create a random forest decision tree model using our training data.
+
+```{r Creating randomforest decision tree model}
+h2o_rf = h2o.randomForest(x = 2:47,
+                          y = 1,
+                          training_frame = data_train_h2o,
+                          ntrees = 100)
+```
+
+We can use h2o.performance to check the performance of our model
+
+```{r randomforest performance}
+
+```
+
+And then create a prediction based on our test data
+
+```{r randomforest prediction}
+rf_predict_h2o = h2o.predict(h2o_rf, newdata = data_test_h2o)
+```
+
+We can then convert back to a standard R dataframe and compare to our known test values
+
+```{r randomforest convert and compare predictions}
+rf_predict = as.data.frame(rf_predict_h2o)
+rf_predict$choice = ifelse(rf_predict >= 0.5, 1, 0 )
+mean(rf_predict$choice == data_test$readmitted)
+```
+
+## Task 3: Artificial Neural Network Model
+
+Creating a neural network model can share most of the data prep work done for the random forest decision tree model
+
+We first create the model calling the h2o.deeplearning function and assigning it to the variable h2o_nn.
+
+```{r Creating neural network model}
+h2o_nn = h2o.deeplearning(x = 2:47,
+                          y = 1,
+                          training_frame = data_train_h2o,
+                          nfolds = 10,
+                          )
+
+```
+
+We can perform the same prediction and comparison with our test data
+
+```{r analyzing neural network model}
+h2o.performance(h2o_nn)
+nn_predict_h2o = h2o.predict(h2o_nn, newdata = data_test_h2o)
+nn_predict = as.data.frame(nn_predict_h2o)
+nn_predict$choice = ifelse(nn_predict >= 0.5, 1, 0 )
+mean(nn_predict$choice == data_test$readmitted)
+```
+
+Both models give an predictive accuracy in the mid to upper 80s, pretty good.
+
+## Summary:
+
+We started off after some basic cleaning creating tree maps that compare the relationships between categorical features such as gender, race, age, and whether the patient was on diabetes medication. There didn't seem to be much of a difference in readmission rates for gender or race. There did seem to be a small increase in readmission rates for older patients and an even larger increase for patients on diabetes medication. This seems to make sense because older patients tend to have more health problems in general and patients with the means or willingness to go on medication may have the means or willingness to seek further treatment if issues arise.
+
+Once we reduced the feature set by removing both variables that either had too many possible outcomes or not enough we trained two different models. We used a Random Forest which in our case creates 100 randomized decision trees and combines them to make a predictive model for readmission rate. 100 trees seemed to be a good spot on my equipment between computation time and predictive power. Depending on the random seed this method had a predictive accuracy in the mid 80% range.
+
+Finally, we created an artificial neural network with 10 cross validation folds. Increasing the number of folds breaks up the data into chunks and allows each piece of data to be used in multiple training sets with the result averaged into one final model. This computation took considerably longer than the random forest but did lead to an increase in accuracy up to 88%. Depending on the application either model may be desirable since they both lead to fairly strong accuracy.
+
+## References:
+
+Anand, Raj, et al. "K-Fold Cross Validation and Classification Accuracy of PIMA Indian Diabetes Data Set Using Higher Order Neural Network and PCA." International Journal of Soft Computing and Engineering (IJSCE), vol. 2, no. 6, 2013, pp. 436-438.
+
+C.C. (2021, May). Predicting Hospital Readmission of Diabetics. Kaggle. <https://www.kaggle.com/chongchong33/predicting-hospital-readmission-of-diabetics>
+
+ggnot. Neural Networks in R Tutorial (H2O tutorial in R: how to create an ANN for binary classification). 21 03 2021. Youtube, <https://www.youtube.com/watch?v=Ck10_VtN_88.>
+
+H2O.ai. "H2O Documentation." H2O.ai, <https://docs.h2o.ai/h2o/latest-stable/h2o-docs/faq/r.html.>
+
+Kabacoff, Rob. "Data Visualization with R." 2020, <https://rkabacoff.github.io/datavis/.>
+
+Kaplan, Jacob. Package 'fastDummies'. 2020. CRAN, <https://github.com/jacobkap/fastDummies.>
