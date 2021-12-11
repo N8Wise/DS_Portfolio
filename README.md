@@ -1,6 +1,6 @@
 ## Data Science Portfolio
 
-Hello, 
+### Hello Reader,
 
 Thank you for taking the time to examine some of my projects. In this portfolio you will find both personal projects, and projects completed from coursework. This portfolio will continued to be updated as additional work is completed. If you have any feedback, I welcome construtive criticism and can be contacted at: nate_wise@frontier.com. You will find a summary of projects below; each project is contained in a folder with code and associated data.
   
