@@ -1,7 +1,5 @@
 ### Important Links
 
-**Github:** https://github.iu.edu/npwise/AppliedDataScience
-
 **Webapp:** https://nwise.shinyapps.io/ADSFinalProject/
 
 ### Research Question
