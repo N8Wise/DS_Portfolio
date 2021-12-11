@@ -6,8 +6,7 @@ Thank you for taking the time to examine some of my projects. In this portfolio 
   
 ### Projects:  
 
-#### [Hospital Readmission of Diabetic Patients](https://github.com/N8Wise/DS_Portfolio/tree/master/Predicting%20Readmission%20Rates%20of%20Diabetic%20Patients)
-**[Applet Link](https://nwise.shinyapps.io/ADSFinalProject/)**<br/><br/>
+#### [Hospital Readmission of Diabetic Patients (code)](https://github.com/N8Wise/DS_Portfolio/tree/master/Predicting%20Readmission%20Rates%20of%20Diabetic%20Patients) [Applet](https://nwise.shinyapps.io/ADSFinalProject/)
 **Summary:** Lead a team of 3 to create an applet analyzing diabetic patient readmissions to a hospital. Through this applet we showcase an EDA, Feature Selection, and explore the best type of model for predicting if a patient will be readmiited to a hospital. Prediction models explored include: Logistic Regression, Random Forest Regression and a Neural Network.<br/>**Code:** R (Rstudio/Rshiny)
 
 #### [NLP Analysis](https://github.com/N8Wise/DS_Portfolio/tree/master/NLP%20Analysis)
